@@ -5,7 +5,24 @@ import pandas as pd
 import numpy as np
 import torch
 
-class PriceData(Dataset):
+import matplotlib.pyplot as plt
+
+class ForexData(Dataset):
+    def __init__(self, length):
+        df = pd.read_csv('data/eurusd_minute.csv')
+        prices = df['BidClose'].values
+        price_changes = prices[1:] - prices[:-1]
+        #Scale to [-1,1]
+        price_changes = price_changes / np.max(np.abs(price_changes))
+        self.x = torch.tensor(price_changes).float()[:price_changes.shape[0]//length*length].view(-1, length)
+
+    def __len__(self):
+        return self.x.shape[0]
+
+    def __getitem__(self, idx):
+        return self.x[idx]
+
+class StockData(Dataset):
     def __init__(self, length):
         prices = []
         for directory in os.walk('stock_market_data/'):
@@ -44,3 +61,11 @@ class PriceData(Dataset):
     
     def __getitem__(self, idx):
         return self.x[idx]
+
+if __name__ == '__main__':
+    forex_dataset = ForexData(30)
+    torch.save(forex_dataset,'bin_data/forex.pt')
+    stock_dataset = StockData(30)
+    torch.save(stock_dataset,'bin_data/stock.pt')
+    print('Done')
+    
